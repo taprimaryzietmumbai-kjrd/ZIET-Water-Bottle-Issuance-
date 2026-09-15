@@ -69,7 +69,7 @@ label{display:block;font-size:14px;font-weight:700;margin-bottom:7px;color:#3349
 <label>Participant Photograph with Steel Water Bottle *</label>
 <div class="photo-box">
   <div class="photo-tools">
-    <button type="button" class="btn secondary" onclick="startCamera()">📷 Take Photograph</button>
+    <button type="button" class="btn" onclick="startCamera()">🤳 OPEN SELFIE CAMERA</button>
     <label class="upload-btn photo-upload">📎 Upload Photograph
       <input id="photoFile" type="file" accept="image/*" capture="user" onchange="uploadParticipantPhoto(event)">
     </label>
@@ -80,7 +80,7 @@ label{display:block;font-size:14px;font-weight:700;margin-bottom:7px;color:#3349
   <video id="cameraVideo" autoplay playsinline></video>
   <canvas id="photoCanvas" width="1200" height="900"></canvas>
   <img id="photoPreview" alt="Participant photograph with bottle preview">
-  <div class="note">Take or upload a clear photograph showing the participant with the issued steel water bottle. JPG/PNG/WebP accepted.</div>
+  <div class="note">Click <b>OPEN SELFIE CAMERA</b> to use the front camera, then click <b>Capture</b>. You may also upload a photograph. JPG/PNG/WebP accepted.</div>
 </div>
 </div>
 
@@ -175,14 +175,14 @@ function setMessage(text, ok=true){
 async function startCamera(){
   try{
     stopCamera();
-    photoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+    photoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:720}},audio:false});
     const v=document.getElementById("cameraVideo");
     v.srcObject=photoStream; v.style.display="block";
     document.getElementById("captureBtn").style.display="inline-block";
     document.getElementById("stopCameraBtn").style.display="inline-block";
     document.getElementById("photoPreview").style.display="none";
   }catch(err){
-    setMessage("Camera could not be opened. You can use Upload Photograph instead.",false);
+    setMessage("Front/selfie camera could not be opened. Please allow camera permission, or use Upload Photograph.",false);
   }
 }
 function capturePhoto(){
