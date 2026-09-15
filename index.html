@@ -26,6 +26,7 @@ label{display:block;font-size:14px;font-weight:700;margin-bottom:7px;color:#3349
 #cameraVideo{width:100%;max-height:360px;border:1px dashed #9eb2c2;border-radius:10px;background:#111;display:none}
 #photoCanvas{display:none}
 .upload-btn.photo-upload{display:inline-flex}
+.pagination{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:15px;flex-wrap:wrap}.page-info{font-weight:700;color:var(--navy)}.small-btn{padding:9px 13px}.pdf-actions{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
 
 @media(max-width:750px){.grid,.stats{grid-template-columns:1fr}.full{grid-column:auto}.wrap{padding:12px}.hero h1{font-size:24px}}
 </style>
@@ -70,7 +71,7 @@ label{display:block;font-size:14px;font-weight:700;margin-bottom:7px;color:#3349
   <div class="photo-tools">
     <button type="button" class="btn secondary" onclick="startCamera()">📷 Take Photograph</button>
     <label class="upload-btn photo-upload">📎 Upload Photograph
-      <input id="photoFile" type="file" accept="image/*" capture="environment" onchange="uploadParticipantPhoto(event)">
+      <input id="photoFile" type="file" accept="image/*" capture="user" onchange="uploadParticipantPhoto(event)">
     </label>
     <button type="button" class="btn secondary" onclick="capturePhoto()" id="captureBtn" style="display:none">📸 Capture</button>
     <button type="button" class="btn secondary" onclick="stopCamera()" id="stopCameraBtn" style="display:none">✕ Stop Camera</button>
@@ -102,8 +103,10 @@ label{display:block;font-size:14px;font-weight:700;margin-bottom:7px;color:#3349
 <section id="records" class="card" style="display:none">
 <h2>Water Bottle Register</h2>
 <div class="stats"><div class="stat">Total Issued<b id="sTotal">0</b></div><div class="stat">Currently Issued<b id="sPending">0</b></div><div class="stat">Returned<b id="sReturned">0</b></div><div class="stat">Return Rate<b id="sRate">0%</b></div></div>
-<div class="toolbar"><input id="recordSearch" placeholder="Search participant, region, KV..." oninput="renderRecords()"><select id="recordRegion" onchange="renderRecords()"><option value="">All Regions</option></select></div>
-<div class="table-wrap"><table><thead><tr><th>#</th><th>Participant</th><th>Region</th><th>KV</th><th>Issued On</th><th>Returned On</th><th>Coordinator</th><th>Status</th></tr></thead><tbody id="recordsBody"></tbody></table></div>
+<div class="toolbar"><input id="recordSearch" placeholder="Search participant, region, KV..." oninput="recordPage=1;renderRecords()"><select id="recordRegion" onchange="recordPage=1;renderRecords()"><option value="">All Regions</option></select></div>
+<div class="pdf-actions"><button class="btn secondary" type="button" onclick="saveRegisterPdf()">📄 Save Register PDF to Google Drive</button><span id="pdfMsg" class="note"></span></div>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>Participant</th><th>Region</th><th>KV</th><th>Issued On</th><th>Returned On</th><th>Coordinator</th><th>Status</th><th>PDF</th></tr></thead><tbody id="recordsBody"></tbody></table></div>
+<div class="pagination"><button class="btn secondary small-btn" type="button" onclick="changeRecordPage(-1)">← Previous</button><span id="recordPageInfo" class="page-info">Page 1</span><button class="btn secondary small-btn" type="button" onclick="changeRecordPage(1)">Next →</button></div>
 </section>
 </div>
 
@@ -118,6 +121,9 @@ const API_URL = "https://script.google.com/macros/s/AKfycby528zJDHpEPOu8klkt7iXU
 // ChatGPT/Browser Preview and local file previews stay offline, so they cannot trigger a network-access prompt.
 const IS_LIVE_GITHUB = location.hostname.endsWith(".github.io");
 let PARTICIPANTS = []; let records = [];
+let recordPage = 1;
+const RECORDS_PER_PAGE = 10;
+let latestRegisterPdfUrl = "";
 let backendOnline = false;
 let signatureData = "";
 let participantPhotoData = "";
@@ -253,6 +259,16 @@ async function loadRecords(){
     return false;
   }
 }
+async function saveRegisterPdf(){
+  const m=document.getElementById("pdfMsg");
+  m.textContent="Creating paginated PDF…";
+  try{
+    const out=await apiCall("exportRegisterPdf");
+    latestRegisterPdfUrl=out.url||"";
+    m.innerHTML=latestRegisterPdfUrl?`✓ Saved ${esc(out.pages)} page(s). <a href="${latestRegisterPdfUrl}" target="_blank" rel="noopener">Open PDF</a>`:"✓ PDF saved to Google Drive.";
+  }catch(err){m.textContent="Unable to create PDF: "+err.message;}
+}
+
 async function init(){
   const r=document.getElementById("region"), rr=document.getElementById("recordRegion");
   Object.keys(MASTER).forEach(x=>{r.add(new Option(x,x));rr.add(new Option(x,x));});
@@ -292,7 +308,7 @@ async function issueRecord(e){
      participantSignature:signatureData,
      participantPhoto:participantPhotoData
    });
-   setMessage("✓ Bottle issue record saved successfully in the Google Sheet. Photograph and signature saved to Google Drive.",true);
+   setMessage("✓ Bottle issue saved. Photograph, signature and PDF were saved to Google Drive.",true);
    e.target.reset();clearSignature();clearParticipantPhoto();
    document.getElementById("issueDate").value=new Date().toISOString().slice(0,10);
    await loadRecords();
@@ -314,7 +330,7 @@ async function markReturned(id,btn){
  if(btn){btn.disabled=true;btn.textContent="Saving…";}
  try{
    await apiCall("return",{id,returnedOn:d});
-   const m=document.getElementById("returnMsg");m.className="msg ok";m.textContent="✓ Water bottle return recorded in the Google Sheet.";m.style.display="block";
+   const m=document.getElementById("returnMsg");m.className="msg ok";m.textContent="✓ Water bottle return recorded. Updated transaction PDF and register PDF saved to Google Drive.";m.style.display="block";
    await loadRecords();
  }catch(err){
    const m=document.getElementById("returnMsg");m.className="msg err";m.textContent="Unable to record return. "+err.message;m.style.display="block";
@@ -324,10 +340,22 @@ async function markReturned(id,btn){
 function renderRecords(){
  const q=(document.getElementById("recordSearch").value||"").toLowerCase(), reg=document.getElementById("recordRegion").value;
  const rows=records.filter(x=>(!reg||x.region===reg)&&`${x.participant} ${x.kv} ${x.region} ${x.coordinator}`.toLowerCase().includes(q));
- document.getElementById("recordsBody").innerHTML=rows.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.participant)}</td><td>${esc(x.region)}</td><td>${esc(x.kv)}</td><td>${esc(x.issuedOn)}</td><td>${esc(x.returnedOn||"—")}</td><td>${esc(x.coordinator)}</td><td class="status ${x.returnedOn?"returned":"issued"}">${x.returnedOn?"Returned":"Issued"}</td></tr>`).join("")||`<tr><td colspan="8">No records found.</td></tr>`;
+ const totalPages=Math.max(1,Math.ceil(rows.length/RECORDS_PER_PAGE));
+ if(recordPage>totalPages)recordPage=totalPages;
+ const start=(recordPage-1)*RECORDS_PER_PAGE;
+ const pageRows=rows.slice(start,start+RECORDS_PER_PAGE);
+ document.getElementById("recordsBody").innerHTML=pageRows.map((x,i)=>`<tr><td>${start+i+1}</td><td>${esc(x.participant)}</td><td>${esc(x.region)}</td><td>${esc(x.kv)}</td><td>${esc(x.issuedOn)}</td><td>${esc(x.returnedOn||"—")}</td><td>${esc(x.coordinator)}</td><td class="status ${x.returnedOn?"returned":"issued"}">${x.returnedOn?"Returned":"Issued"}</td><td>${x.transactionPdfUrl?`<a href="${x.transactionPdfUrl}" target="_blank" rel="noopener">PDF</a>`:"—"}</td></tr>`).join("")||`<tr><td colspan="9">No records found.</td></tr>`;
+ document.getElementById("recordPageInfo").textContent=`Page ${recordPage} of ${totalPages}`;
  const total=records.length,pending=records.filter(x=>!x.returnedOn).length,ret=total-pending;
  document.getElementById("sTotal").textContent=total;document.getElementById("sPending").textContent=pending;document.getElementById("sReturned").textContent=ret;document.getElementById("sRate").textContent=total?Math.round(ret/total*100)+"%":"0%";
 }
+function changeRecordPage(delta){
+ const q=(document.getElementById("recordSearch").value||"").toLowerCase(), reg=document.getElementById("recordRegion").value;
+ const rows=records.filter(x=>(!reg||x.region===reg)&&`${x.participant} ${x.kv} ${x.region} ${x.coordinator}`.toLowerCase().includes(q));
+ const totalPages=Math.max(1,Math.ceil(rows.length/RECORDS_PER_PAGE));
+ recordPage=Math.min(totalPages,Math.max(1,recordPage+delta)); renderRecords();
+}
+
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 
 document.getElementById("issueForm").addEventListener("submit",issueRecord);
