@@ -166,10 +166,10 @@ function clearSignature(resetFile=true){
 }
 
 
-function setMessage(text, ok=true){
+function setMessage(text, ok=true, html=false){
   const m=document.getElementById("issueMsg");
   m.className="msg "+(ok?"ok":"err");
-  m.textContent=text;
+  if(html) m.innerHTML=text; else m.textContent=text;
   m.style.display="block";
 }
 async function startCamera(){
@@ -331,7 +331,9 @@ async function issueRecord(e){
      participantSignature:signatureData,
      participantPhoto:participantPhotoData
    });
-   setMessage("✓ Bottle issue saved. Photograph, signature and PDF were saved to Google Drive.",true);
+   const txPdf = out.transactionPdfUrl ? ` <a href="${out.transactionPdfUrl}" target="_blank" rel="noopener" style="font-weight:800;text-decoration:underline;">Open Transaction PDF</a>` : "";
+   const regPdf = out.registerPdfUrl ? ` <a href="${out.registerPdfUrl}" target="_blank" rel="noopener" style="font-weight:800;text-decoration:underline;">Open Register PDF</a>` : "";
+   setMessage(`✓ Bottle issue saved. Photograph, signature and PDF were saved to Google Drive.${txPdf}${regPdf}`,true,true);
    e.target.reset();clearSignature();clearParticipantPhoto();
    document.getElementById("issueDate").value=new Date().toISOString().slice(0,10);
    await loadRecords();
