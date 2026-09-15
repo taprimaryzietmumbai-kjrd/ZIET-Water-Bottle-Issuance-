@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZIET Mumbai | Steel Water Bottle Issue & Return</title>
+<style>
+:root{--navy:#12355b;--blue:#1f6aa5;--sky:#eaf4fb;--gold:#d8a62a;--green:#287d5a;--red:#b64242;--ink:#203040;--muted:#667788}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-gradient(135deg,#eef6fb,#f9fbfd);color:var(--ink)}
+.wrap{max-width:1100px;margin:auto;padding:24px}.hero{background:linear-gradient(135deg,var(--navy),#205f91);color:#fff;border-radius:22px;padding:28px 30px;box-shadow:0 12px 30px #12355b25}
+.hero .org{font-size:14px;letter-spacing:.08em;text-transform:uppercase;opacity:.85}.hero h1{margin:8px 0 4px;font-size:30px}.hero p{margin:0;opacity:.9}
+.tabs{display:flex;gap:10px;margin:20px 0}.tab{border:0;border-radius:12px;padding:12px 18px;background:#dfeaf3;color:var(--navy);font-weight:700;cursor:pointer}.tab.active{background:var(--navy);color:white}
+.card{background:#fff;border-radius:20px;padding:25px;box-shadow:0 8px 24px #173a5212;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.full{grid-column:1/-1}
+label{display:block;font-size:14px;font-weight:700;margin-bottom:7px;color:#33495c}input,select{width:100%;padding:13px 14px;border:1px solid #cbd8e2;border-radius:11px;background:#fff;font-size:15px;outline:none}input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px #1f6aa520}
+.note{font-size:12px;color:var(--muted);margin-top:7px}.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}.btn{border:0;border-radius:12px;padding:13px 20px;font-weight:800;cursor:pointer}.primary{background:var(--green);color:#fff}.secondary{background:#e8eef3;color:var(--navy)}
+.msg{display:none;margin-top:18px;padding:14px;border-radius:12px;font-weight:700}.ok{display:block;background:#e6f6ee;color:#17633f}.err{display:block;background:#fff0f0;color:#8c2f2f}
+.table-wrap{overflow:auto}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px}.toolbar input{max-width:330px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}.stat{background:#f4f8fb;border-radius:14px;padding:15px}.stat b{display:block;font-size:25px;color:var(--navy)}table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:11px 10px;border-bottom:1px solid #e4ebf0;text-align:left;white-space:nowrap}th{background:#edf5fa;color:var(--navy)}.status{font-weight:800}.issued{color:#a26700}.returned{color:var(--green)}
+.sig-box{border:1px solid #cbd8e2;border-radius:14px;padding:12px;background:#fbfdff}
+.sig-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+.upload-btn{display:inline-flex;align-items:center;gap:7px;background:#e8eef3;color:var(--navy);border-radius:12px;padding:13px 16px;font-weight:800;cursor:pointer}
+.upload-btn input{display:none}
+#signaturePad{width:100%;height:220px;border:1px dashed #9eb2c2;border-radius:10px;background:#fff;touch-action:none;display:block}
+.photo-box{border:1px solid #cbd8e2;border-radius:14px;padding:12px;background:#fbfdff}
+.photo-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+#photoPreview{width:100%;max-height:360px;object-fit:contain;border:1px dashed #9eb2c2;border-radius:10px;background:#fff;display:none}
+#cameraVideo{width:100%;max-height:360px;border:1px dashed #9eb2c2;border-radius:10px;background:#111;display:none}
+#photoCanvas{display:none}
+.upload-btn.photo-upload{display:inline-flex}
+
+@media(max-width:750px){.grid,.stats{grid-template-columns:1fr}.full{grid-column:auto}.wrap{padding:12px}.hero h1{font-size:24px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+<div class="org">Kendriya Vidyalaya Sangathan · ZIET Mumbai</div>
+<h1>Steel Water Bottle Issue & Return</h1>
+<p>Workshop Participant Resource Management</p>
+</header>
+
+<div class="tabs">
+<button class="tab active" onclick="showTab('issue',this)">💧 Issue Bottle</button>
+<button class="tab" onclick="showTab('return',this)">↩️ Return Bottle</button>
+<button class="tab" onclick="showTab('records',this)">📋 Records</button>
+</div>
+
+<section id="issue" class="card">
+<h2>Issue a Steel Water Bottle</h2>
+<form id="issueForm">
+<div class="grid">
+<div><label>Name of the Participant *</label><input id="participant" required list="participantList" placeholder="Select or enter participant name"><datalist id="participantList"></datalist></div>
+<div><label>Region of the Participant *</label><select id="region" required onchange="filterKV()"><option value="">-- Select Region --</option></select></div>
+<div><label>KV of the Participant *</label><select id="kv" required><option value="">-- Select Region First --</option></select></div>
+<div class="full">
+<label>Participant Signature *</label>
+<div class="sig-box">
+  <div class="sig-tools">
+    <button type="button" class="btn secondary" id="drawSigBtn" onclick="setSigMode('draw')">✍️ Draw Signature</button>
+    <label class="upload-btn">📎 Upload Signature <input id="sigFile" type="file" accept="image/png,image/jpeg,image/webp" onchange="uploadSignature(event)"></label>
+    <button type="button" class="btn secondary" onclick="clearSignature()">Clear</button>
+  </div>
+  <canvas id="signaturePad" width="900" height="220"></canvas>
+  <div class="note">Draw with mouse, stylus or touch, or upload a signature image. PNG/JPG/WebP accepted.</div>
+</div>
+</div>
+
+<div class="full">
+<label>Participant Photograph with Steel Water Bottle *</label>
+<div class="photo-box">
+  <div class="photo-tools">
+    <button type="button" class="btn secondary" onclick="startCamera()">📷 Take Photograph</button>
+    <label class="upload-btn photo-upload">📎 Upload Photograph
+      <input id="photoFile" type="file" accept="image/*" capture="environment" onchange="uploadParticipantPhoto(event)">
+    </label>
+    <button type="button" class="btn secondary" onclick="capturePhoto()" id="captureBtn" style="display:none">📸 Capture</button>
+    <button type="button" class="btn secondary" onclick="stopCamera()" id="stopCameraBtn" style="display:none">✕ Stop Camera</button>
+    <button type="button" class="btn secondary" onclick="clearParticipantPhoto()">Clear</button>
+  </div>
+  <video id="cameraVideo" autoplay playsinline></video>
+  <canvas id="photoCanvas" width="1200" height="900"></canvas>
+  <img id="photoPreview" alt="Participant photograph with bottle preview">
+  <div class="note">Take or upload a clear photograph showing the participant with the issued steel water bottle. JPG/PNG/WebP accepted.</div>
+</div>
+</div>
+
+<div><label>Steel Water Bottle Issued on *</label><input id="issueDate" type="date" required></div>
+<div><label>Verified by the Workshop Coordinator *</label><select id="coordinator" required><option value="">-- Select Coordinator --</option></select></div>
+</div>
+<div class="note">After submission, the record appears in the Return Bottle tab for recording the return date.</div>
+<div class="actions"><button class="btn secondary" type="reset">Clear</button><button class="btn primary" type="submit">Issue Bottle & Save Record</button></div>
+<div id="issueMsg" class="msg"></div>
+</form>
+</section>
+
+<section id="return" class="card" style="display:none">
+<h2>Record Water Bottle Return</h2>
+<div class="toolbar"><input id="returnSearch" placeholder="Search participant / KV..." oninput="renderReturn()"><input id="returnDate" type="date"></div>
+<div class="table-wrap"><table><thead><tr><th>Participant</th><th>Region</th><th>KV</th><th>Issued On</th><th>Coordinator</th><th>Returned On</th><th>Action</th></tr></thead><tbody id="returnBody"></tbody></table></div>
+<div id="returnMsg" class="msg"></div>
+</section>
+
+<section id="records" class="card" style="display:none">
+<h2>Water Bottle Register</h2>
+<div class="stats"><div class="stat">Total Issued<b id="sTotal">0</b></div><div class="stat">Currently Issued<b id="sPending">0</b></div><div class="stat">Returned<b id="sReturned">0</b></div><div class="stat">Return Rate<b id="sRate">0%</b></div></div>
+<div class="toolbar"><input id="recordSearch" placeholder="Search participant, region, KV..." oninput="renderRecords()"><select id="recordRegion" onchange="renderRecords()"><option value="">All Regions</option></select></div>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>Participant</th><th>Region</th><th>KV</th><th>Issued On</th><th>Returned On</th><th>Coordinator</th><th>Status</th></tr></thead><tbody id="recordsBody"></tbody></table></div>
+</section>
+</div>
+
+<script>
+// ===== MASTER DATA =====
+// These are based on the previously created ZIET participant/KV material available to this app.
+// Extend/replace these arrays whenever the master participant/KV/coordinator app is updated.
+const MASTER = {"Ahmedabad":["KENDRIYA VIDYALAYA DIU","KENDRIYA VIDYALAYA Silvassa","KENDRIYA VIDYALAYA SAC AHMEDABAD","KENDRIYA VIDYALAYA AHMEDABAD CANTT","KENDRIYA VIDYALAYA No. I M.R. CAMPUS AHMEDABAD","KENDRIYA VIDYALAYA ONGC CHANDKHEDA","KENDRIYA VIDYALAYA SABARMATI","KENDRIYA VIDYALAYA ONGC ANKLESHWAR","KENDRIYA VIDYLAYA NO.I BARODA","KENDRIYA VIDYALAYA NO.II BARODA","KENDRIYA VIDYALAYA NO.III (AFS) BARODA","KENDRIYA VIDYALAYA NO. IV BARODA","KENDRIYA VIDYALAYA BHAVNAGAR PARA","KENDRIYA VIDYLAYA AFS NO.I BHUJ","KENDRIYA VIDYALAYA NO.II BHUJ CANTT.","KENDRIYA VIDYALAYA ONGC CAMBEY","KENDRIYA VIDYALAYA BSF DANTIWADA","KENDRIYA VIDYALAYA DHARANGANDHRA","KENDRIYA VIDYALAYA DWARKA","KENDRIYA VIDYALAYA IFFCO GANDHIDHAM","KENDRIYA VIDYALAYA RLY. COLONY GANDHIDHAM","KENDRIYA VIDYALAYA CRPF GANDHINAGAR","KENDRIYA VIDYALAYA No. III GANDHINAGAR CANTT","KENDRIYA VIDYALAYA No. I GANDHINAGAR","KENDRIYA VIDYALAYA HIMMAT NAGAR","KENDRIYA VIDYALAYA NO.I AFS JAMNAGAR","KENDRIYA VIDYALAYA NO.II JAMNAGAR","KENDRIYA VIDYALAYA NO.III (AF) JAMNAGAR","KENDRIYA VIDYALAYA AFS SAMANA","KENDRIYA VIDYALAYA INS VALSURA","KENDRIYA VIDYALAYA JETPUR","KENRIYA VIDYALAYA JUNAGARH","KENDRIYA VIDYALAYA ONGC MEHSANA","KENDRIYA VIDYALAYA AFS NALIYA","KENDRIYA VIDYALAYA OKHA","KENDRIYA VIDYALAYA PORBANDER","KENRIYA VIDYALAYA NO.I SURAT","KENDRIYA VIDYALAYA HAJIRA NO.II SURAT","KENDRIYA VIDYALAYA ONGC NO.III SURAT","KENDRIYA VIDYALAYA V V NAGAR","KENDRIYA VIDYALAYA VIRAMGAON","KENDRIYA VIDYALAYA AFS WADSAR","KENDRIYA VIDYALAYA GODHRA","KENDRIYA VIDYALAYA AFS DARJEEPURA","KENDRIYA VIDYALAYA DAHOD","KENDRIYA VIDYALAYA PATAN","KENDRIYA VIDYALAYA DPA GANDHIDHAM","KENDRIYA VIDYALAYA RAJKOT","KENDRIYA VIDYALAYA VASTRAL"],"Jaipur":["KENDRIYA VIDYALAYA (CRPF) NO.I AJMER","KENDRIYA VIDYALAYA CRPF NO.II AJMER","KENDRIYA VIDYALAYA NASIRABAD","KENDRIYA VIDYALAYA ALWAR","KENDRIYA VIDYALAYA ITARANA","KENDRIYA VIDYALAYA (BSF)ANOOPGARH","KENDRIYA VIDYALAYA (AGPP) ANTA","KENDRIYA VIDYALAYA (SWRI) AVIKANAGAR","KENDRIYA VIDYALAYA BANSWARA","KENDRIYA VIDYALAYA BARAN","KENDRIYA VIDYALAYA BEAWAR","KENDRIYA VIDYALAYA BHARATPUR","KENDRIYA VIDYALAYA BHILWARA","KENDRIYA VIDYALAYA NO.I (SAGAR ROAD)","KENDRIYA VIDYALAYA NO.II BIKANER","KENDRIYA VIDYALAYA (AFS) NO.III NAL BIKANER","KENDRIYA VIDYALAYA CHURU","KENDRIYA VIDYALAYA (BSF) DABLA","KENDRIYA VIDYALAYA (CISF) DEOLI","KENDRIYA VIDYALAYA (AFS) JAISALMER","KENDRIYA VIDYALAYA NO.I BAJAJ NAGAR JAIPUR","KENDRIYA VIDYALAYA NO.II JAIPUR CANTT","KENDRIYA VIDYALAYA NO.III MREC JAIPUR","KENDRIYA VIDYALAYA NO.IV (KHATIPURA) JAIPUR","KENDRIYA VIDYALAYA NO.V MANSAROVER JAIPUR","KENDRIYA VIDYALAYA NO.VI SECTOR III PRATAP NAGAR","KENDRIYA VIDYALAYA JALIPA CANTT","KENDRIYA VIDYALAYA UTTARLAI","KENDRIYA VIDYALAYA JHALAWAR","KENDRIYA VIDYALAYA JHUNJHUNU","KENDRIYA VIDYALAYA BANAR","KENDRIYA VIDYALAYA (BSF) JODHPUR","KENDRIYA VIDYALAYA AFS NO.I JODHPUR","KENDRIYA VIDYALAYA Army NO. I JODHPUR","KENDRIYA VIDYALAYA ( AFS) NO.II JODHPUR","KENDRIYA VIDYALAYA (ARMY)NO.II JODHPUR","KENDRIYA VIDYALAYA NO.I KOTA","KENDRIYA VIDYALAYA NO.II KOTA","KENDRIYA VIDYALAYA (CRPF) MOUNTABU","KENDRIYA VIDYALAYA PHULERA","KENDRIYA VIDYALAYA (BSF) POKHRAN","KENDRIYA VIDYALAYA LALGARH JATTAN","KENDRIYA VIDYALAYA SHRI GANGA NAGAR CANTT","KENDRIYA VIDYALAYA SIKAR","KENDRIYA VIDYALAYA (AFS) NO.II SURATGARH","KENDRIYA VIDYALAYA (AFS)NO.I SURATGARH","KENDRIYA VIDYALAYA NO.II SURATGARH CANTT","KENDRIYA VIDYALAYA STPS SURATGARH","KENDRIYA VIDYALAYA SAWAI MADHOPUR","KENDRIYA VIDYALAYA NO.II EKLINGGARH UDAIPUR","KENDRIYA VIDYALAYA GANGAPUR CITY","KENDRIYA VIDYALAYA KARAULI","KENDRIYA VIDYALAYA KHETRI NAGAR","KENDRIYA VIDYALAYA DUNGAR PUR","KENDRIYA VIDYALAYA CHITTORGARH","KENDRIYA VIDYALAYA BSF RAMGARH","KENDRIYA VIDYALAYA BSF RAISINGHNAGAR","KENDRIYA VIDYALAYA DEOGARH","KENDRIYA VIDYALAYA BSF KHAJUWALA","KENDRIYA VIDYALAYA TONK","KENDRIYA VIDYALAYA INDERPURA","KENDRIYA VIDYALAYA CHHABRA THERMAL POWER PROJECT (CTPS)","KENDRIYA VIDYALAYA JALORE","KENDRIYA VIDYALAYA. CENTRAL UNIVERSITY OF RAJASTHAN. BANDERSINDRI","KENDRIYA VIDYALAYA BUNDI","KENDRIYA VIDYALAYA JAISINDHAR","KENDRIYA VIDYALAYA DAUSA","KENDRIYA VIDYALAYA HANUMANGARH","KENDRIYA VIDYALAYA NAGAUR","KENDRIYA VIDYALAYA CISF JAIPUR","KENDRIYA VIDYALAYA IIT JODHPUR","KENDRIYA VIDYALAYA DHOLPUR","KENDRIYA VIDYALAYA TINVARI","KENDRIYA VIDYALAYA PALI","KENDRIYA VIDYALAYA BANDIKUI","KENDRIYA VIDYALAYA PRATAPGARH","KENDRIYA VIDYALAYA NO.I (PRATAP NAGAR) UDAIPUR","KENDRIYA VIDYALAYA BSF SRIKARANPUR","KENDRIYA VIDYALAYA AFS PHALODI","Kendriya Vidyalaya Bhim","Kendriya Vidyalaya Rajghrh","Kendriya Vidyalaya Rajsamand","KENDRIYA VIDYALAYA HINDAUN CITY","KENDRIYA VIDYALAYA MERTA CITY","KENDRIYA VIDYALAYA BSF SATRANA"],"Mumbai":["KENDRIYA VIDYALAYA BAMBOLIM CAMP","KENDRIYA VIDYALAYA (INS)MANDOVI","KENDRIYA VIDYALAYA PONDA","KENDRIYA VIDYALAYA NO.I VASCO-DA-GAMA","KENDRIYA VIDYALAYA NO.II VASCO-DA-GAMA","KENDRIYA VIDYALAYA (OF) BHANDARA","KENDRIYA VIDYALAYA (OF) CHANDA","KENDRIYA VIDYALAYA (WCL) CHANDRAPUR","KENDRIYA VIDYALAYA KAMPTEE","KENDRIYA VIDYALAYA (CRPF) NAGPUR","KENDRIYA VIDYALAYA (VSN) NAGPUR","KENDRIYA VIDYALAYA AJNI","KENDRIYA VIDYALAYA AMBAJHARI","KENDRIYA VIDYALAYA (WCL)NEW MAJARI","KENDRIYA VIDYALAYA PULGAON CAMP","KENDRIYA VIDYALAYA NO.I AHMEDNAGAR","KENDRIYA VIDYALAYA (MIRC) NO.II AHMEDNAGAR","KENDRIYA VIDYALAYA (VRDE)No. III AHMEDNAGAR","KENDRIYA VIDYALAYA Chhatrapati Sambhajinagar, CANTT","KENDRIYA VIDYALAYA (OF)No. I BHUSAWAL","KENDRIYA VIDYALAYA NO.I DEVLALI","KENDRIYA VIDYALAYA (AFS) NO.II DEVLALI","KENDRIYA VIDYALAYA NO.I NASIK ROAD CAMP","KENDRIYA VIDYALAYA (ISP) NO.II NASIK ROAD CAMP","KENDRIYA VIDYALAYA (AFS) OJHAR","KENDRIYA VIDYALAYA (NMU) JALGAON","KENDRIYA VIDYALAYA NAD KARANJA","KENDRIYA VIDYALAYA LONAVALA","KENDRIYA VIDYALAYA MANMAD","KENDRIYA VIDYALAYA CRPF MUDKHED","KENDRIYA VIDYALAYA (OF) AMBARNATH","KENDRIYA VIDYALAYA BHANDUP","KENDRIYA VIDYALAYA NO.I COLABA","KENDRIYA VIDYALAYA NO.II COLABA","KENDRIYA VIDYALAYA NO.III COLABA","KENDRIYA VIDYALAYA IIT POWAI","KENDRIYA VIDYALAYA INS HAMLA","KENDRIYA VIDYALAYA KOLIWADA","KENDRIYA VIDYALAYA MANKHURD","KENDRIYA VIDYALAYA (ONGC)PANVEL","KENDRIYA VIDYALAYA (AFS) THANE","KENDRIYA VIDYALAYA NO.I DEHUROAD","KENDRIYA VIDYALAYA No. II DEHUROAD","KENDRIYA VIDYALAYA (SC) PUNE","KENDRIYA VIDYALAYA (AFS) NO.I PUNE","KENDRIYA VIDYALAYA (AFS) NO.II PUNE","KENDRIYA VIDYALAYA (9 BRD) NO.III PUNE","KENDRIYA VIDYALAYA ARMY AREA PUNE","KENDRIYA VIDYALAYA BEG & CENTRE KHADKI PUNE","KENDRIYA VIDYALAYA CME PUNE","KENDRIYA VIDYALAYA GANESH KHIND","KENDRIYA VIDYALAYA IAT GIRINAGAR","KENDRIYA VIDYALAYA (NDA)KHADAK VASLA","KENDRIYA VIDYALAYA RANGE HILLS ESTATE","KENDRIYA VIDYALAYA SHOLAPUR","KENDRIYA VIDYALAYA (OF) VARANGAON","KENDRIYA VIDYALAYA YAWATMAL","KENDRIYA VIDYALAYA DHULE","KENDRIYA VIDYALAYA SCR NANDED","KENDRIYA VIDYALAYA BSF CHAKUR","KENDRIYA VIDYALAYA CRPF TELIGAON","KENDRIYA VIDYALAYA MAHATAMA GANDHI ANTARASHTRIYA HINDI VISHAV VIDYALAYA(Wardha)","KENDRIYA VIDYALAYA WASHIM","KENDRIYA VIDYALAYA PARBHANI","KENDRIYA VIDYALAYA NDRF SUDUMBARE","KENDRIYA VIDYALAYA AKOLA","KENDRIYA VIDYALYA GADCHIROLI","Kendriya Vidyalaya Nachane"],"Patna":["KENDRIYA VIDYALAYA AINWAN","KENDRIYA VIDYALAYA (IOC) NO.II BARAUNI","KENDRIYA VIDYALAYA BETIAH","KENDRIYA VIDYALAYA (AFS) BIHATA","KENDRIYA VIDYALAYA BUXAR","KENDRIYA VIDYALAYA (AFS) NO I DARBHANGA","KENDRIYA VIDYALAYA No. I GAYA","KENDRIYA VIDYALAYA No. II GAYA","KENDRIYA VIDYALAYA HAJIPUR","KENDRIYA VIDYALAYA JAMALPUR","KENDRIYA VIDYALAYA JAWAHAR NAGAR","KENDRIYA VIDYALAYA (NTPC) KAHAL GAON","KENDRIYA VIDYALAYA KATIHAR","KENDRIYA VIDYALAYA KHAGARIA","KENDRIYA VIDYALAYA (BSF) KISHAN GANJ","KENDRIYA VIDYALAYA LAKHISA RAI","KENDRIYA VIDYALAYA MASHRAK","KENDRIYA VIDYALAYA MOTIHARI","KENDRIYA VIDYALAYA (CRPF)MOKAM GHAT","KENDRIYA VIDYALAYA MUZZAFFARPUR","KENDRIYA VIDYALAYA DANAPUR CANTT","KENDRIYA VIDYALAYA KHAGAUL","KENDRIYA VIDYALAYA NO.II BAILEY ROAD PATNA","KENDRIYA VIDYALAYA PUSA-RAU","KENDRIYA VIDYALAYA SAHARSA","KENDRIYA VIDYALAYA SAMASTIPUR","KENDRIYA VIDYALAYA SONPUR","KENDRIYA VIDYALAYA CHAPRA","KENDRIYA VIDYALAYA GOPALGANJ","KENDRIYA VIDYALAYA BANKA","KENDRIYA VIDYALAYA NO 1 BARAUNI","KENDRIYA VIDYALAYA NO II DARBHANGA","KENDRIYA VIDYALAYA SIWAN","KENDRIYA VIDYALAYA ARAH","KENDRIYA VIDYALAYA PURNIA","KENDRIYA VIDYALAYA OF NALANDA","KENDRIYA VIDYALAYA ARARIA","KENDRIYA VIDYALAYA SHEOHAR","KENDRIYA VIDYALAYA AURANGABAD","KENDRIYA VIDYALAYA HARNAUT","KENDRIYA VIDYALAYA CRPF JHAPHAN","KENDRIYA VIDYALAYA CAST WHEEL PLANT BELA","KENDRIYA VIDYALAYA MAHARAJGANJ","KENDRIYA VIDYALAYA SASARAM","KENDRIYA VIDYALAYA JHAJHA","KENDRIYA VIDYALAYA NABINAGAR NPGCL","KENDRIYA VIDYALAYA IIT PATNA","KENDRIYA VIDYALAYA NO.I KANKARBAGH PATNA","KENDRIYA VIDYALAYA 205 CB CRPF BARACHATTI","KENDRIYA VIDYALAYA, 45th BN., SSB, BIRPUR","KENDRIYA VIDYALAYA GARHARA","Kendriya Vidyalaya No. 3 Darbhanga (AIIMS)","KENDRIYA VIDYALAYA ARA TOWN DISTT BHOJPUR","Kendriya Vidyalaya Nawada","Kendriya Vidyalaya Jamuara","KENDRIYA VIDYALAYA MUZAFFARPUR BELA INDUSTRIAL AREA","KENDRIYA VIDYALAYA DEVKUND","Kendriya Vidyalaya Madhepura","KENDRIYA VIDYALAYA JHANJHARPUR","KENDRIYA VIDYALAYA MADHUBANI","KENDRIYA VIDYALAYA SHEKHOPURSARAI"],"Raipur":["KENDRIYA VIDYALAYA (SECL) NO.III KORBA","KENDRIYA VIDYALAYA AMBIKA PUR","KENDRIYA VIDYALAYA (BIOP)BACHELI","KENDRIYA VIDYALAYA (SECL)BAIKUNTPUR","KENDRIYA VIDYALAYA BHILAI","KENDRIYA VIDYALAYA DURG","KENDRIYA VIDYALAYA MANENDRAGARH","KENDRIYA VIDYALAYA BILASPUR","KENDRIYA VIDYALAYA (SECL)CHIRI MIRI","KENDRIYA VIDYALAYA DANTEWADA","KENDRIYA VIDYALAYA DUNGARGARH","KENDRIYA VIDYALAYA JAGDALPUR","KENDRIYA VIDYALAYA JASHPUR","KENDRIYA VIDYALAYA (SECL) JHAGRAKHAND","KENDRIYA VIDYALAYA (BIOP) KIRANDUL","KENDRIYA VIDYALAYA No II (NTPC) KORBA","KENDRIYA VIDYALAYA (NTPC)(BCPP) NO.IV KORBA","KENDRIYA VIDYALAYA MAHASUMAND","KENDRIYA VIDYALAYA RAIGARH","KENDRIYA VIDYALAY NO I RAIPUR","KENDRIYA VIDYALAYA NO. II RAIPUR","KENDRIYA VIDYALAYA DHAMTARI","KENDRIYA VIDYALAYA KANKER","KENDRIYA VIDYALAYA KHAIRAGARH","KENDRIYA VIDYALAYA CISF BHILAI","KENDRIYA VIDYALAYA RAJNANDGAON","KENDRIYA VIDYALAYA JANJGIR","KENDRIYA VIDYALAYA NARAYANPUR","KENDRIYA VIDYALAYA BIJAPUR","KENDRIYA VIDYALAYA SUKMA","KENDRIYA VIDYALAYA NAYA RAIPUR","KENDRIYA VIDYALAYA KHURUD","KENDRIYA VIDYALAYA SARAIPALLI","KENDRIYA VIDYALAYA MAHARAJPUR KAWARDHA","KENDRIYA VIDYALAYA CRPF BILASPUR","KENDRIYA VIDYALAYA KONDAGAON","KENDRIYA VIDYALAYA BEMETARA","Kendriya Vidyalaya Surajpur","Kendriya Vidyalaya Mungeli","KENDRIYA VIDYALAYA GC CRPF ARANG"]};
+const COORDINATORS=["Mrs. Seema Mishra","Mrs. Deepa Dilawari","Mrs. DEEPALI D KHADYE","Mr. Shreyash Kamble","Mr. Gajendra L. Kapde","Mr. Nilesh Thangan","Mr. Anand Kumar Srivastava","Dr. Rajesh Sharma","Mrs. Joyce"];
+let PARTICIPANTS = []; let records = JSON.parse(localStorage.getItem("waterBottleRecords")||"[]");
+let signatureData = "";
+let participantPhotoData = "";
+let photoStream = null;
+let sigCanvas, sigCtx, drawing = false, hasSignature = false;
+
+function initSignature(){
+  sigCanvas=document.getElementById("signaturePad");
+  sigCtx=sigCanvas.getContext("2d");
+  sigCtx.lineWidth=2.5; sigCtx.lineCap="round"; sigCtx.lineJoin="round";
+  const point=e=>{
+    const r=sigCanvas.getBoundingClientRect();
+    return {x:(e.clientX-r.left)*sigCanvas.width/r.width,y:(e.clientY-r.top)*sigCanvas.height/r.height};
+  };
+  sigCanvas.addEventListener("pointerdown",e=>{drawing=true;sigCanvas.setPointerCapture(e.pointerId);const p=point(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);hasSignature=true;});
+  sigCanvas.addEventListener("pointermove",e=>{if(!drawing)return;const p=point(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();});
+  ["pointerup","pointercancel","pointerleave"].forEach(ev=>sigCanvas.addEventListener(ev,()=>drawing=false));
+}
+function setSigMode(mode){ if(mode==="draw") document.getElementById("sigFile").value=""; }
+function uploadSignature(e){
+  const f=e.target.files[0]; if(!f)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      clearSignature(false);
+      const scale=Math.min(sigCanvas.width/img.width,sigCanvas.height/img.height);
+      const w=img.width*scale,h=img.height*scale;
+      sigCtx.drawImage(img,(sigCanvas.width-w)/2,(sigCanvas.height-h)/2,w,h);
+      hasSignature=true;
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(f);
+}
+function clearSignature(resetFile=true){
+  if(sigCtx) sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);
+  hasSignature=false; signatureData="";
+  if(resetFile) document.getElementById("sigFile").value="";
+}
+
+
+function setMessage(text, ok=true){
+  const m=document.getElementById("issueMsg");
+  m.className="msg "+(ok?"ok":"err");
+  m.textContent=text;
+  m.style.display="block";
+}
+async function startCamera(){
+  try{
+    stopCamera();
+    photoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+    const v=document.getElementById("cameraVideo");
+    v.srcObject=photoStream; v.style.display="block";
+    document.getElementById("captureBtn").style.display="inline-block";
+    document.getElementById("stopCameraBtn").style.display="inline-block";
+    document.getElementById("photoPreview").style.display="none";
+  }catch(err){
+    setMessage("Camera could not be opened. You can use Upload Photograph instead.",false);
+  }
+}
+function capturePhoto(){
+  const v=document.getElementById("cameraVideo"), c=document.getElementById("photoCanvas");
+  if(!v.videoWidth){setMessage("Please wait for the camera preview, then capture the photograph.",false);return;}
+  const maxW=1200, scale=Math.min(1,maxW/v.videoWidth);
+  c.width=Math.round(v.videoWidth*scale); c.height=Math.round(v.videoHeight*scale);
+  c.getContext("2d").drawImage(v,0,0,c.width,c.height);
+  participantPhotoData=c.toDataURL("image/jpeg",0.88);
+  document.getElementById("photoPreview").src=participantPhotoData;
+  document.getElementById("photoPreview").style.display="block";
+  stopCamera();
+}
+function stopCamera(){
+  if(photoStream){photoStream.getTracks().forEach(t=>t.stop());photoStream=null;}
+  const v=document.getElementById("cameraVideo");
+  if(v){v.srcObject=null;v.style.display="none";}
+  const cb=document.getElementById("captureBtn"), sb=document.getElementById("stopCameraBtn");
+  if(cb)cb.style.display="none"; if(sb)sb.style.display="none";
+}
+function uploadParticipantPhoto(e){
+  const f=e.target.files[0]; if(!f)return;
+  if(!f.type.startsWith("image/")){setMessage("Please select an image file.",false);return;}
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.getElementById("photoCanvas");
+      const maxW=1200, scale=Math.min(1,maxW/img.width);
+      c.width=Math.round(img.width*scale); c.height=Math.round(img.height*scale);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      participantPhotoData=c.toDataURL("image/jpeg",0.88);
+      const p=document.getElementById("photoPreview");p.src=participantPhotoData;p.style.display="block";
+      stopCamera();
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(f);
+}
+function clearParticipantPhoto(){
+  stopCamera();
+  participantPhotoData="";
+  document.getElementById("photoPreview").src="";
+  document.getElementById("photoPreview").style.display="none";
+  document.getElementById("photoFile").value="";
+}
+
+function init(){
+  const r=document.getElementById("region"), rr=document.getElementById("recordRegion");
+  Object.keys(MASTER).forEach(x=>{r.add(new Option(x,x));rr.add(new Option(x,x));});
+  COORDINATORS.forEach(x=>document.getElementById("coordinator").add(new Option(x,x)));
+  document.getElementById("issueDate").value=new Date().toISOString().slice(0,10);
+  // Participant names can be populated by the master app / Apps Script endpoint later.
+  initSignature();renderReturn();renderRecords();
+}
+function filterKV(){
+ const v=document.getElementById("region").value, s=document.getElementById("kv"); s.innerHTML='<option value="">-- Select KV --</option>';
+ (MASTER[v]||[]).forEach(x=>s.add(new Option(x,x)));
+}
+function showTab(id,btn){
+ ["issue","return","records"].forEach(x=>document.getElementById(x).style.display=x===id?"block":"none");
+ document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));btn.classList.add("active");
+ if(id==="return")renderReturn();if(id==="records")renderRecords();
+}
+function save(){localStorage.setItem("waterBottleRecords",JSON.stringify(records));}
+async function issueRecord(e){
+ e.preventDefault();
+ if(!hasSignature){setMessage("Please draw or upload the participant signature before submitting.",false);return;}
+ if(!participantPhotoData){setMessage("Please take or upload the participant photograph with the steel water bottle before submitting.",false);return;}
+ signatureData=sigCanvas.toDataURL("image/png");
+ const rec={
+   id:Date.now().toString(),
+   participant:document.getElementById("participant").value.trim(),
+   region:document.getElementById("region").value,
+   kv:document.getElementById("kv").value,
+   issuedOn:document.getElementById("issueDate").value,
+   returnedOn:"",
+   coordinator:document.getElementById("coordinator").value,
+   participantSignature:signatureData,
+   participantPhoto:participantPhotoData,
+   status:"Issued"
+ };
+ if(!rec.participant||!rec.region||!rec.kv||!rec.issuedOn||!rec.coordinator)return;
+ records.push(rec);save();
+ e.target.reset();clearSignature();clearParticipantPhoto();
+ document.getElementById("issueDate").value=new Date().toISOString().slice(0,10);
+ setMessage("✓ Bottle issue record saved successfully. The participant photograph with bottle is included.",true);
+ renderReturn();renderRecords();
+}
+
+function renderReturn(){
+ const q=(document.getElementById("returnSearch").value||"").toLowerCase(), body=document.getElementById("returnBody");
+ const rows=records.filter(x=>!x.returnedOn && `${x.participant} ${x.kv} ${x.region}`.toLowerCase().includes(q));
+ body.innerHTML=rows.length?rows.map(x=>`<tr><td>${esc(x.participant)}</td><td>${x.region}</td><td>${esc(x.kv)}</td><td>${x.issuedOn}</td><td>${esc(x.coordinator)}</td><td><input type="date" id="d-${x.id}" value="${document.getElementById("returnDate").value||""}"></td><td><button class="btn primary" onclick="markReturned('${x.id}')">Mark Returned</button></td></tr>`).join(""):`<tr><td colspan="7">No pending bottle returns.</td></tr>`;
+}
+function markReturned(id){
+ const d=document.getElementById("d-"+id).value;if(!d){alert("Please select the return date.");return}
+ const x=records.find(r=>r.id===id);x.returnedOn=d;x.status="Returned";save();
+ const m=document.getElementById("returnMsg");m.className="msg ok";m.textContent="✓ Water bottle return recorded.";m.style.display="block";renderReturn();renderRecords();
+}
+function renderRecords(){
+ const q=(document.getElementById("recordSearch").value||"").toLowerCase(), reg=document.getElementById("recordRegion").value;
+ const rows=records.filter(x=>(!reg||x.region===reg)&&`${x.participant} ${x.kv} ${x.region} ${x.coordinator}`.toLowerCase().includes(q));
+ document.getElementById("recordsBody").innerHTML=rows.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.participant)}</td><td>${x.region}</td><td>${esc(x.kv)}</td><td>${x.issuedOn}</td><td>${x.returnedOn||"—"}</td><td>${esc(x.coordinator)}</td><td class="status ${x.returnedOn?"returned":"issued"}">${x.returnedOn?"Returned":"Issued"}</td></tr>`).join("")||`<tr><td colspan="8">No records found.</td></tr>`;
+ const total=records.length,pending=records.filter(x=>!x.returnedOn).length,ret=total-pending;
+ document.getElementById("sTotal").textContent=total;document.getElementById("sPending").textContent=pending;document.getElementById("sReturned").textContent=ret;document.getElementById("sRate").textContent=total?Math.round(ret/total*100)+"%":"0%";
+}
+function esc(s){return String(s||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+document.getElementById("issueForm").addEventListener("submit",issueRecord);
+document.getElementById("issueForm").addEventListener("reset",()=>{setTimeout(()=>{clearSignature();clearParticipantPhoto();},0);});
+document.getElementById("returnDate").addEventListener("change",renderReturn);
+init();
+</script>
+</body>
+</html>
