@@ -111,8 +111,8 @@ label{display:block;font-size:14px;font-weight:700;margin-bottom:7px;color:#3349
 </div>
 
 <script>
-// ===== PARTICIPANT SHEET DATA (imported from the supplied workbook) =====
-const PARTICIPANT_SHEETS = {"Sheet1":["Smt. Pratibha Devda","Dr. Shweta Rathor","Km. Krishna D. Engineer","Smt. Yamini Modh","Smt. Miki Kumari","Shri Akash Patil","Smt Bharti D. Godgaste","Shri Ashutosh Soni","Smt. Bharati Najardhane","Smt. Chauhan Lataben Premjibhai","Shri Lalit Kumar","Shri Punit Shanker Kinnriya","Shri Tushar Solanki","Shri Lakhan Makhan","Shri Kapil Gandharva","Shri Swaraj Parmar","Smt. Shivalika Sharma","Shri Amar Singh Mali","Shri Sandip Rathod","Shri Gadhavi Dilipdan Bhikhudan","Smt.Nisha Parmar","Shri Parimal Kirtikumar Jadav","Shri Vala Jaydeep Muljibhai","Sh.Ravjibhai Gopani","Shri Gadhavi Mojdan Hemudan","Smt. Swati Bharadwaj","Shri Devesh Ghardey","Shri Govind Harkha Makwana","Smt. Akanksha Pandey","Shri Jignesh Govindbhai Barot","Shri Gadhvi Balvantsang Shankardan","Dr. Sanjay Kumar Ameta","Shri Jadav Tejaskumar Vijaykumar","Shri Sachin Shamkant Jagtap"]};
+// Participant lists are loaded live from the source Google Sheet via Apps Script.
+let PARTICIPANT_SHEETS = {};
 function populateParticipantNames(){
  const tab=document.getElementById("participantSheet").value;
  const names=PARTICIPANT_SHEETS[tab]||[];
@@ -123,6 +123,33 @@ function populateParticipantNames(){
  input.value="";
  input.placeholder=names.length?("Select from "+names.length+" names in "+tab):"Select participant name";
  input.disabled=!names.length;
+}
+async function loadParticipantSheets(){
+ const select=document.getElementById("participantSheet");
+ select.innerHTML='<option value="">Loading participant sheets…</option>';
+ select.disabled=true;
+ try{
+   const out=await apiCall("participantSheets");
+   PARTICIPANT_SHEETS={};
+   (out.sheets||[]).forEach(sheet=>{
+     PARTICIPANT_SHEETS[sheet.name]=sheet.names||[];
+   });
+   select.innerHTML='<option value="">-- Select Participant Sheet --</option>';
+   Object.keys(PARTICIPANT_SHEETS).forEach(tab=>select.add(new Option(tab,tab)));
+   select.disabled=false;
+   if(Object.keys(PARTICIPANT_SHEETS).length){
+     select.value=Object.keys(PARTICIPANT_SHEETS)[0];
+     populateParticipantNames();
+   }else{
+     document.getElementById("participant").disabled=true;
+     select.innerHTML='<option value="">No participant-list tabs found</option>';
+   }
+ }catch(err){
+   select.innerHTML='<option value="">Participant lists unavailable</option>';
+   document.getElementById("participant").disabled=true;
+   console.error("Participant sheet loading failed:",err);
+   setMessage("Could not load participant lists from the source Google Sheet. "+err.message,false);
+ }
 }
 
 // ===== MASTER DATA =====
@@ -307,9 +334,7 @@ async function saveRegisterPdf(){
 }
 
 async function init(){
-  const sheetSelect=document.getElementById("participantSheet");
-  Object.keys(PARTICIPANT_SHEETS).forEach(tab=>sheetSelect.add(new Option(tab,tab)));
-  if(Object.keys(PARTICIPANT_SHEETS).length){sheetSelect.value=Object.keys(PARTICIPANT_SHEETS)[0];populateParticipantNames();}
+  await loadParticipantSheets();
   const r=document.getElementById("region"), rr=document.getElementById("recordRegion");
   Object.keys(MASTER).forEach(x=>{r.add(new Option(x,x));rr.add(new Option(x,x));});
   COORDINATORS.forEach(x=>document.getElementById("coordinator").add(new Option(x,x)));
