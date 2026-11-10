@@ -433,9 +433,9 @@ async function markReturned(id,btn){
  if(!returnLocations[id]){alert("GPS geotagging is compulsory. Capture the Return Location before marking the bottle returned.");return;}
  if(btn){btn.disabled=true;btn.textContent="Saving…";}
  try{
-   await apiCall("return",{id,returnedOn:d,returnLocation:returnLocations[id]});
+   const out=await apiCall("return",{id,returnedOn:d,returnLocation:returnLocations[id]});
    delete returnLocations[id];
-   const m=document.getElementById("returnMsg");m.className="msg ok";m.textContent="✓ Water bottle return recorded at: "+(awaitAddressPlaceholder="GPS address resolved in the saved record")+". Updated transaction PDF and register PDF saved to Google Drive.";m.style.display="block";
+   const m=document.getElementById("returnMsg");m.className="msg ok";m.textContent="✓ Water bottle return recorded at: "+(out.returnAddress||"Address unavailable")+". Updated transaction PDF and register PDF saved to Google Drive.";m.style.display="block";
    await loadRecords();
  }catch(err){
    const m=document.getElementById("returnMsg");m.className="msg err";m.textContent="Unable to record return. "+err.message;m.style.display="block";
