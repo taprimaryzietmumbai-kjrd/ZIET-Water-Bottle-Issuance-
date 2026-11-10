@@ -334,13 +334,16 @@ async function saveRegisterPdf(){
 }
 
 async function init(){
-  await loadParticipantSheets();
+  // Populate local dropdowns immediately; do not make them wait for the remote participant-sheet request.
   const r=document.getElementById("region"), rr=document.getElementById("recordRegion");
   Object.keys(MASTER).forEach(x=>{r.add(new Option(x,x));rr.add(new Option(x,x));});
   COORDINATORS.forEach(x=>document.getElementById("coordinator").add(new Option(x,x)));
   document.getElementById("issueDate").value=new Date().toISOString().slice(0,10);
   initSignature();
   renderReturn();renderRecords();
+
+  // Load remote data independently after the local form controls are ready.
+  loadParticipantSheets();
   if(IS_LIVE_GITHUB) await loadRecords();
 }
 function filterKV(){
