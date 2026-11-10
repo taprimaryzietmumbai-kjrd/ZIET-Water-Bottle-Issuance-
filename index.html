@@ -50,7 +50,7 @@ label{display:block;font-size:14px;font-weight:700;margin-bottom:7px;color:#3349
 <h2>Issue a Steel Water Bottle</h2>
 <form id="issueForm">
 <div class="grid">
-<div class="full"><label>Participant List / Sheet Tab *</label><select id="participantSheet" required onchange="populateParticipantNames()"><option value="">-- Select Participant Sheet --</option></select><div class="note">Choose the relevant worksheet tab to load its participant names automatically.</div></div><div><label>Name of the Participant *</label><input id="participant" required list="participantList" placeholder="Select participant name"><datalist id="participantList"></datalist></div>
+<div class="full"><label>Participant List / Sheet Tab *</label><select id="participantSheet" required onchange="populateParticipantNames()"><option value="">-- Select Participant Sheet --</option></select><div class="note">Choose the relevant worksheet tab to load its participant names automatically.</div><div class="pdf-actions"><button class="btn secondary" type="button" onclick="printSelectedParticipantRegister()">🖨️ Print A4 Issue & Return List</button><span class="note">The list is populated automatically from the selected worksheet tab.</span></div></div><div><label>Name of the Participant *</label><input id="participant" required list="participantList" placeholder="Select participant name"><datalist id="participantList"></datalist></div>
 <div><label>Region of the Participant *</label><select id="region" required onchange="filterKV()"><option value="">-- Select Region --</option></select></div>
 <div><label>KV of the Participant *</label><select id="kv" required><option value="">-- Select Region First --</option></select></div>
 <div class="full">
@@ -115,6 +115,32 @@ label{display:block;font-size:14px;font-weight:700;margin-bottom:7px;color:#3349
 <script>
 // Participant lists are loaded live from the source Google Sheet via Apps Script.
 let PARTICIPANT_SHEETS = {};
+function printSelectedParticipantRegister(){
+ const tab=document.getElementById("participantSheet").value;
+ const names=PARTICIPANT_SHEETS[tab]||[];
+ if(!tab||!names.length){setMessage("Please select a participant sheet with names before printing.",false);return;}
+ const escHtml=v=>String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+ const rows=names.map((name,i)=>'<tr><td class="no">'+(i+1)+'</td><td>'+escHtml(name)+'</td><td></td><td></td></tr>').join("");
+ const w=window.open("","_blank");
+ if(!w){setMessage("Please allow pop-ups to print the A4 register.",false);return;}
+ w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Bottle Issue & Return Register - ${escHtml(tab)}</title><style>
+ @page{size:A4 portrait;margin:13mm}*{box-sizing:border-box}body{font:11px Arial,sans-serif;color:#111;margin:0}
+ h1{text-align:center;font-size:17px;margin:0 0 4px}h2{text-align:center;font-size:12px;font-weight:600;margin:0 0 10px}
+ .meta{display:flex;justify-content:space-between;font-size:10px;margin:8px 0 10px}
+ table{width:100%;border-collapse:collapse;table-layout:fixed}thead{display:table-header-group}tr{break-inside:avoid}
+ th,td{border:1px solid #333;padding:7px 6px;height:29px}th{background:#eee;text-align:center;font-weight:700}
+ td.no{text-align:center;width:8%}th:nth-child(1){width:8%}th:nth-child(2){width:48%}th:nth-child(3),th:nth-child(4){width:22%}
+ .foot{margin-top:14px;display:flex;justify-content:space-between;font-size:10px}
+ @media screen{body{padding:18px;max-width:190mm;margin:auto}button{padding:9px 18px;margin:0 0 12px}@media print{button{display:none}}}
+ </style></head><body><button onclick="window.print()">Print / Save as PDF</button>
+ <h1>KENDRIYA VIDYALAYA SANGATHAN</h1><h2>आंचलिक शिक्षा एवं प्रशिक्षण संस्थान, मुंबई · ZIET Mumbai</h2>
+ <h2>STEEL WATER BOTTLE ISSUE &amp; RETURN REGISTER</h2>
+ <div class="meta"><span><b>Participant Sheet:</b> ${escHtml(tab)}</span><span><b>Total Participants:</b> ${names.length}</span><span><b>Date:</b> __________________</span></div>
+ <table><thead><tr><th>S. No.</th><th>Name of Participant</th><th>Bottle Issued On</th><th>Bottle Returned On</th></tr></thead><tbody>${rows}</tbody></table>
+ <div class="foot"><span>Issued by: __________________________</span><span>Verified by: __________________________</span></div>
+ <script>window.onload=()=>setTimeout(()=>window.print(),350);<\/script></body></html>`);
+ w.document.close();
+}
 function populateParticipantNames(){
  const tab=document.getElementById("participantSheet").value;
  const names=PARTICIPANT_SHEETS[tab]||[];
