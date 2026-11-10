@@ -49,7 +49,7 @@ label{display:block;font-size:14px;font-weight:700;margin-bottom:7px;color:#3349
 <h2>Issue a Steel Water Bottle</h2>
 <form id="issueForm">
 <div class="grid">
-<div><label>Name of the Participant *</label><input id="participant" required list="participantList" placeholder="Select or enter participant name"><datalist id="participantList"></datalist></div>
+<div class="full"><label>Participant List / Sheet Tab *</label><select id="participantSheet" required onchange="populateParticipantNames()"><option value="">-- Select Participant Sheet --</option></select><div class="note">Choose the relevant worksheet tab to load its participant names automatically.</div></div><div><label>Name of the Participant *</label><input id="participant" required list="participantList" placeholder="Select participant name"><datalist id="participantList"></datalist></div>
 <div><label>Region of the Participant *</label><select id="region" required onchange="filterKV()"><option value="">-- Select Region --</option></select></div>
 <div><label>KV of the Participant *</label><select id="kv" required><option value="">-- Select Region First --</option></select></div>
 <div class="full">
@@ -111,6 +111,20 @@ label{display:block;font-size:14px;font-weight:700;margin-bottom:7px;color:#3349
 </div>
 
 <script>
+// ===== PARTICIPANT SHEET DATA (imported from the supplied workbook) =====
+const PARTICIPANT_SHEETS = {"Sheet1":["Smt. Pratibha Devda","Dr. Shweta Rathor","Km. Krishna D. Engineer","Smt. Yamini Modh","Smt. Miki Kumari","Shri Akash Patil","Smt Bharti D. Godgaste","Shri Ashutosh Soni","Smt. Bharati Najardhane","Smt. Chauhan Lataben Premjibhai","Shri Lalit Kumar","Shri Punit Shanker Kinnriya","Shri Tushar Solanki","Shri Lakhan Makhan","Shri Kapil Gandharva","Shri Swaraj Parmar","Smt. Shivalika Sharma","Shri Amar Singh Mali","Shri Sandip Rathod","Shri Gadhavi Dilipdan Bhikhudan","Smt.Nisha Parmar","Shri Parimal Kirtikumar Jadav","Shri Vala Jaydeep Muljibhai","Sh.Ravjibhai Gopani","Shri Gadhavi Mojdan Hemudan","Smt. Swati Bharadwaj","Shri Devesh Ghardey","Shri Govind Harkha Makwana","Smt. Akanksha Pandey","Shri Jignesh Govindbhai Barot","Shri Gadhvi Balvantsang Shankardan","Dr. Sanjay Kumar Ameta","Shri Jadav Tejaskumar Vijaykumar","Shri Sachin Shamkant Jagtap"]};
+function populateParticipantNames(){
+ const tab=document.getElementById("participantSheet").value;
+ const names=PARTICIPANT_SHEETS[tab]||[];
+ const list=document.getElementById("participantList");
+ const input=document.getElementById("participant");
+ list.innerHTML="";
+ names.forEach(name=>{const o=document.createElement("option");o.value=name;list.appendChild(o);});
+ input.value="";
+ input.placeholder=names.length?("Select from "+names.length+" names in "+tab):"Select participant name";
+ input.disabled=!names.length;
+}
+
 // ===== MASTER DATA =====
 // These are based on the previously created ZIET participant/KV material available to this app.
 // Extend/replace these arrays whenever the master participant/KV/coordinator app is updated.
@@ -293,6 +307,9 @@ async function saveRegisterPdf(){
 }
 
 async function init(){
+  const sheetSelect=document.getElementById("participantSheet");
+  Object.keys(PARTICIPANT_SHEETS).forEach(tab=>sheetSelect.add(new Option(tab,tab)));
+  if(Object.keys(PARTICIPANT_SHEETS).length){sheetSelect.value=Object.keys(PARTICIPANT_SHEETS)[0];populateParticipantNames();}
   const r=document.getElementById("region"), rr=document.getElementById("recordRegion");
   Object.keys(MASTER).forEach(x=>{r.add(new Option(x,x));rr.add(new Option(x,x));});
   COORDINATORS.forEach(x=>document.getElementById("coordinator").add(new Option(x,x)));
