@@ -414,7 +414,7 @@ async function issueRecord(e){
    setMessage(`✓ Bottle issue saved. GPS address: ${esc(out.issueAddress||"Address unavailable")}. Photograph, signature and PDFs were saved to Google Drive.${txPdf}${regPdf}`,true,true);
    e.target.reset();clearSignature();clearParticipantPhoto();issueLocation=null;document.getElementById("issueGeoStatus").textContent="Location not captured. GPS permission is required before issuing the bottle.";document.getElementById("issueGeoStatus").className="geo-status";
    document.getElementById("issueDate").value=new Date().toISOString().slice(0,10);
-   await loadRecords();
+   loadRecords().catch(err=>console.warn('Records refresh failed:',err));
  }catch(err){
    setMessage("Unable to save the bottle issue record. "+err.message,false);
  }finally{
