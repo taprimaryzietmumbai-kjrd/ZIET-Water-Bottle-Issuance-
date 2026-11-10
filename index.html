@@ -27,6 +27,7 @@ label{display:block;font-size:14px;font-weight:700;margin-bottom:7px;color:#3349
 #photoCanvas{display:none}
 .upload-btn.photo-upload{display:inline-flex}
 .pagination{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:15px;flex-wrap:wrap}.page-info{font-weight:700;color:var(--navy)}.small-btn{padding:9px 13px}.pdf-actions{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.geo-box{border:1px solid #b9d2e2;border-radius:14px;padding:14px;background:#f5faff}.geo-status{font-size:13px;margin-top:8px;color:#33495c;white-space:normal}.geo-status.ok{color:#17633f}.geo-status.err{color:#8c2f2f}
 
 @media(max-width:750px){.grid,.stats{grid-template-columns:1fr}.full{grid-column:auto}.wrap{padding:12px}.hero h1{font-size:24px}}
 </style>
@@ -86,6 +87,7 @@ label{display:block;font-size:14px;font-weight:700;margin-bottom:7px;color:#3349
 
 <div><label>Steel Water Bottle Issued on *</label><input id="issueDate" type="date" required></div>
 <div><label>Verified by the Workshop Coordinator *</label><select id="coordinator" required><option value="">-- Select Coordinator --</option></select></div>
+<div class="full"><label>Issue-stage GPS Geotagging * (Compulsory)</label><div class="geo-box"><button class="btn secondary" type="button" onclick="captureIssueLocation(this)">📍 Capture Issue Location</button><div id="issueGeoStatus" class="geo-status">Location not captured. GPS permission is required before issuing the bottle.</div></div></div>
 </div>
 <div class="note">After submission, the record appears in the Return Bottle tab for recording the return date.</div>
 <div class="actions"><button class="btn secondary" type="reset">Clear</button><button class="btn primary" type="submit">Issue Bottle & Save Record</button></div>
@@ -96,7 +98,7 @@ label{display:block;font-size:14px;font-weight:700;margin-bottom:7px;color:#3349
 <section id="return" class="card" style="display:none">
 <h2>Record Water Bottle Return</h2>
 <div class="toolbar"><input id="returnSearch" placeholder="Search participant / KV..." oninput="renderReturn()"><input id="returnDate" type="date"></div>
-<div class="table-wrap"><table><thead><tr><th>Participant</th><th>Region</th><th>KV</th><th>Issued On</th><th>Coordinator</th><th>Returned On</th><th>Action</th></tr></thead><tbody id="returnBody"></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>Participant</th><th>Region</th><th>KV</th><th>Issued On</th><th>Coordinator</th><th>Returned On</th><th>Return GPS Location *</th><th>Action</th></tr></thead><tbody id="returnBody"></tbody></table></div>
 <div id="returnMsg" class="msg"></div>
 </section>
 
@@ -168,6 +170,8 @@ let latestRegisterPdfUrl = "";
 let backendOnline = false;
 let signatureData = "";
 let participantPhotoData = "";
+let issueLocation = null;
+let returnLocations = {};
 let photoStream = null;
 let sigCanvas, sigCtx, drawing = false, hasSignature = false;
 
@@ -294,6 +298,30 @@ function clearParticipantPhoto(){
   document.getElementById("photoFile").value="";
 }
 
+function captureGps_(success, statusElement, button){
+  if(!navigator.geolocation){statusElement.textContent="This browser does not support GPS location. Use a supported browser/device.";statusElement.className="geo-status err";return;}
+  if(button){button.disabled=true;button.textContent="Getting GPS location…";}
+  statusElement.textContent="Requesting device location permission…";statusElement.className="geo-status";
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const c=pos.coords;
+    const loc={latitude:Number(c.latitude),longitude:Number(c.longitude),accuracy:Number(c.accuracy),capturedAt:new Date().toISOString()};
+    success(loc);
+    statusElement.textContent=`✓ GPS captured: ${loc.latitude.toFixed(6)}, ${loc.longitude.toFixed(6)} (accuracy ±${Math.round(loc.accuracy)} m). Readable address will be resolved and saved with the record.`;
+    statusElement.className="geo-status ok";
+    if(button){button.disabled=false;button.textContent=button.dataset.readyLabel||"📍 Capture Location Again";}
+  },err=>{
+    const messages={1:"Location permission was denied. Allow location access in your browser and retry.",2:"Your device could not determine the location. Check GPS/location services and retry.",3:"GPS request timed out. Move to an area with a clearer signal and retry."};
+    statusElement.textContent=messages[err.code]||"GPS location could not be captured. Please retry.";statusElement.className="geo-status err";
+    if(button){button.disabled=false;button.textContent=button.dataset.readyLabel||"📍 Retry Location";}
+  },{enableHighAccuracy:true,timeout:25000,maximumAge:0});
+}
+function captureIssueLocation(btn){btn.dataset.readyLabel="📍 Capture Issue Location Again";captureGps_(loc=>{issueLocation=loc;},document.getElementById("issueGeoStatus"),btn);}
+function captureReturnLocation(id,btn){
+  const status=document.getElementById("returnGeoStatus-"+id);
+  btn.dataset.readyLabel="📍 Capture Again";
+  captureGps_(loc=>{returnLocations[id]=loc;},status,btn);
+}
+
 async function apiCall(action, data={}){
   if(!IS_LIVE_GITHUB){
     throw new Error("Preview mode: Google Sheet connection is disabled here. Open the published GitHub Pages site to use live records.");
@@ -365,6 +393,7 @@ async function issueRecord(e){
  e.preventDefault();
  if(!hasSignature){setMessage("Please draw or upload the participant signature before submitting.",false);return;}
  if(!participantPhotoData){setMessage("Please take or upload the participant photograph with the steel water bottle before submitting.",false);return;}
+ if(!issueLocation){setMessage("GPS geotagging is compulsory. Capture the Issue Location before submitting.",false);return;}
  const participant=document.getElementById("participant").value.trim();
  const region=document.getElementById("region").value;
  const kv=document.getElementById("kv").value;
@@ -377,12 +406,13 @@ async function issueRecord(e){
    const out=await apiCall("issue",{
      participant,region,kv,issuedOn,coordinator,
      participantSignature:signatureData,
-     participantPhoto:participantPhotoData
+     participantPhoto:participantPhotoData,
+     issueLocation:issueLocation
    });
    const txPdf = out.transactionPdfUrl ? ` <a href="${out.transactionPdfUrl}" target="_blank" rel="noopener" style="font-weight:800;text-decoration:underline;">Open Transaction PDF</a>` : "";
    const regPdf = out.registerPdfUrl ? ` <a href="${out.registerPdfUrl}" target="_blank" rel="noopener" style="font-weight:800;text-decoration:underline;">Open Register PDF</a>` : "";
    setMessage(`✓ Bottle issue saved. Photograph, signature and PDF were saved to Google Drive.${txPdf}${regPdf}`,true,true);
-   e.target.reset();clearSignature();clearParticipantPhoto();
+   e.target.reset();clearSignature();clearParticipantPhoto();issueLocation=null;document.getElementById("issueGeoStatus").textContent="Location not captured. GPS permission is required before issuing the bottle.";document.getElementById("issueGeoStatus").className="geo-status";
    document.getElementById("issueDate").value=new Date().toISOString().slice(0,10);
    await loadRecords();
  }catch(err){
@@ -395,14 +425,16 @@ async function issueRecord(e){
 async function renderReturn(){
  const q=(document.getElementById("returnSearch").value||"").toLowerCase(), body=document.getElementById("returnBody");
  const rows=records.filter(x=>!x.returnedOn && `${x.participant} ${x.kv} ${x.region}`.toLowerCase().includes(q));
- body.innerHTML=rows.length?rows.map(x=>`<tr><td>${esc(x.participant)}</td><td>${esc(x.region)}</td><td>${esc(x.kv)}</td><td>${esc(x.issuedOn)}</td><td>${esc(x.coordinator)}</td><td><input type="date" id="d-${x.id}" value="${document.getElementById("returnDate").value||""}"></td><td><button class="btn primary" onclick="markReturned('${x.id}',this)">Mark Returned</button></td></tr>`).join(""):`<tr><td colspan="7">No pending bottle returns.</td></tr>`;
+ body.innerHTML=rows.length?rows.map(x=>`<tr><td>${esc(x.participant)}</td><td>${esc(x.region)}</td><td>${esc(x.kv)}</td><td>${esc(x.issuedOn)}</td><td>${esc(x.coordinator)}</td><td><input type="date" id="d-${x.id}" value="${document.getElementById("returnDate").value||""}"></td><td><button class="btn secondary small-btn" onclick="captureReturnLocation('${x.id}',this)">📍 Capture GPS</button><div id="returnGeoStatus-${x.id}" class="geo-status">${returnLocations[x.id]?`✓ ${returnLocations[x.id].latitude.toFixed(6)}, ${returnLocations[x.id].longitude.toFixed(6)} (±${Math.round(returnLocations[x.id].accuracy)} m)`:"Location not captured"}</div></td><td><button class="btn primary" onclick="markReturned('${x.id}',this)">Mark Returned</button></td></tr>`).join(""):`<tr><td colspan="8">No pending bottle returns.</td></tr>`;
 }
 async function markReturned(id,btn){
  const d=document.getElementById("d-"+id).value;
  if(!d){alert("Please select the return date.");return;}
+ if(!returnLocations[id]){alert("GPS geotagging is compulsory. Capture the Return Location before marking the bottle returned.");return;}
  if(btn){btn.disabled=true;btn.textContent="Saving…";}
  try{
-   await apiCall("return",{id,returnedOn:d});
+   await apiCall("return",{id,returnedOn:d,returnLocation:returnLocations[id]});
+   delete returnLocations[id];
    const m=document.getElementById("returnMsg");m.className="msg ok";m.textContent="✓ Water bottle return recorded. Updated transaction PDF and register PDF saved to Google Drive.";m.style.display="block";
    await loadRecords();
  }catch(err){
