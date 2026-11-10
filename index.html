@@ -411,7 +411,7 @@ async function issueRecord(e){
    });
    const txPdf = out.transactionPdfUrl ? ` <a href="${out.transactionPdfUrl}" target="_blank" rel="noopener" style="font-weight:800;text-decoration:underline;">Open Transaction PDF</a>` : "";
    const regPdf = out.registerPdfUrl ? ` <a href="${out.registerPdfUrl}" target="_blank" rel="noopener" style="font-weight:800;text-decoration:underline;">Open Register PDF</a>` : "";
-   setMessage(`✓ Bottle issue saved. Photograph, signature and PDF were saved to Google Drive.${txPdf}${regPdf}`,true,true);
+   setMessage(`✓ Bottle issue saved. GPS address: ${esc(out.issueAddress||"Address unavailable")}. Photograph, signature and PDFs were saved to Google Drive.${txPdf}${regPdf}`,true,true);
    e.target.reset();clearSignature();clearParticipantPhoto();issueLocation=null;document.getElementById("issueGeoStatus").textContent="Location not captured. GPS permission is required before issuing the bottle.";document.getElementById("issueGeoStatus").className="geo-status";
    document.getElementById("issueDate").value=new Date().toISOString().slice(0,10);
    await loadRecords();
@@ -435,7 +435,7 @@ async function markReturned(id,btn){
  try{
    await apiCall("return",{id,returnedOn:d,returnLocation:returnLocations[id]});
    delete returnLocations[id];
-   const m=document.getElementById("returnMsg");m.className="msg ok";m.textContent="✓ Water bottle return recorded. Updated transaction PDF and register PDF saved to Google Drive.";m.style.display="block";
+   const m=document.getElementById("returnMsg");m.className="msg ok";m.textContent="✓ Water bottle return recorded at: "+(awaitAddressPlaceholder="GPS address resolved in the saved record")+". Updated transaction PDF and register PDF saved to Google Drive.";m.style.display="block";
    await loadRecords();
  }catch(err){
    const m=document.getElementById("returnMsg");m.className="msg err";m.textContent="Unable to record return. "+err.message;m.style.display="block";
@@ -464,7 +464,7 @@ function changeRecordPage(delta){
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 
 document.getElementById("issueForm").addEventListener("submit",issueRecord);
-document.getElementById("issueForm").addEventListener("reset",()=>{setTimeout(()=>{clearSignature();clearParticipantPhoto();},0);});
+document.getElementById("issueForm").addEventListener("reset",()=>{setTimeout(()=>{clearSignature();clearParticipantPhoto();issueLocation=null;const g=document.getElementById("issueGeoStatus");if(g){g.textContent="Location not captured. GPS permission is required before issuing the bottle.";g.className="geo-status";}},0);});
 document.getElementById("returnDate").addEventListener("change",renderReturn);
 init();
 </script>
