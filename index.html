@@ -337,6 +337,9 @@ async function init(){
   // Populate local dropdowns immediately; do not make them wait for the remote participant-sheet request.
   const r=document.getElementById("region"), rr=document.getElementById("recordRegion");
   Object.keys(MASTER).forEach(x=>{r.add(new Option(x,x));rr.add(new Option(x,x));});
+  // Keep the issue form on its explicit placeholder until the user chooses a region.
+  r.value="";
+  filterKV();
   COORDINATORS.forEach(x=>document.getElementById("coordinator").add(new Option(x,x)));
   document.getElementById("issueDate").value=new Date().toISOString().slice(0,10);
   initSignature();
